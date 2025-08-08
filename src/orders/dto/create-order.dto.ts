@@ -10,7 +10,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OrderStatus } from '../entities/order-satus.enum';
+import { OrderStatus } from '../entities/order-status.enum';
 
 class OrderItemDto {
   @IsString()
