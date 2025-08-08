@@ -5,6 +5,6 @@ import { OrderStatus } from '../entities/order-satus.enum';
 
 export class UpdateOrderDto extends PartialType(CreateOrderDto) {
   @IsOptional()
-  @IsEnum(['pending', 'processing', 'shipped', 'delivered', 'cancelled'])
+  @IsEnum(OrderStatus)
   status?: OrderStatus;
 }
