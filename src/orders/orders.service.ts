@@ -4,17 +4,27 @@ import { Repository } from 'typeorm';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Order } from './entities/order.entity';
+import { KafkaService } from '../kafka/kafka.service'; // importa seu service
 
 @Injectable()
 export class OrdersService {
   constructor(
     @InjectRepository(Order)
     private ordersRepository: Repository<Order>,
+    private kafkaService: KafkaService, // injeta o KafkaService
   ) {}
 
-  create(createOrderDto: CreateOrderDto): Promise<Order> {
+  async create(createOrderDto: CreateOrderDto): Promise<Order> {
     const order = this.ordersRepository.create(createOrderDto);
-    return this.ordersRepository.save(order);
+    const savedOrder = await this.ordersRepository.save(order);
+
+    // Envia mensagem para Kafka após salvar o pedido
+    await this.kafkaService.emit('orders-topic', {
+      event: 'order_created',
+      data: savedOrder,
+    });
+
+    return savedOrder;
   }
 
   findAll(): Promise<Order[]> {
@@ -30,11 +40,25 @@ export class OrdersService {
   async update(id: string, updateOrderDto: UpdateOrderDto): Promise<Order> {
     const order = await this.findOne(id);
     Object.assign(order, updateOrderDto);
-    return this.ordersRepository.save(order);
+    const updatedOrder = await this.ordersRepository.save(order);
+
+    // Envia mensagem para Kafka após atualizar o pedido
+    await this.kafkaService.emit('orders-topic', {
+      event: 'order_updated',
+      data: updatedOrder,
+    });
+
+    return updatedOrder;
   }
 
   async remove(id: string): Promise<void> {
     const order = await this.findOne(id);
     await this.ordersRepository.remove(order);
+
+    // Envia mensagem para Kafka após remover o pedido
+    await this.kafkaService.emit('orders-topic', {
+      event: 'order_deleted',
+      data: { id },
+    });
   }
 }
